@@ -1,32 +1,26 @@
 import User from '../model/User.js';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import { generateToken } from '../utils/tokenUtils.js';
 
-
-const generateToken = (userId) => {
-    return jwt.sign({ userId }, process.env.JWT_SECRET, {
-        expiresIn: '1d'
-    });
-}
 export const register = async (req, res) => {
     try {
         const { username, email, password } = req.body;
-        // 1.check input
+        // check input
         if (!username || !email || !password) {
             return res.status(400).json({ message: 'All fields are required' });
         }
 
-        // 2.check if user already exists
-        const isExistingUser = await User.findOne({ $or: [{ username }, { email }] });
-        if (isExistingUser) {
+        // check if user already exists
+        const isUserExist = await User.findOne({ $or: [{ username }, { email }] });
+        if (isUserExist) {
             return res.status(400).json({ message: 'User already exists' });
         }
 
-        // 3.Hash password
+        // hash password
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        // 4.Create new user
+        // create new user
         const randomProfileImage = `https://api.dicebear.com/9.x/avataaars/svg?seed=${username}`;
         const user = new User({
             username,
@@ -37,7 +31,7 @@ export const register = async (req, res) => {
 
         await user.save();
 
-        // 5.Generate JWT token
+        // generate JWT token
         const token = generateToken(user._id);
 
         res.status(201).json({
@@ -57,8 +51,38 @@ export const register = async (req, res) => {
 
 export const login = async (req, res) => {
     try {
+        const { email, password } = req.body;
+        // Check Input
+        if (!email || !password) {
+            return res.status(400).json({ message: 'All fields are required' });
+        }
 
+        // check if user exist
+        const user = await User.findOne({ email })
+        if (!user) {
+            return res.status(400).json({ message: 'User does not exist' });
+        }
+
+        // check password
+        const isPasswordMatch = await bcrypt.compare(password, user.password);
+        if (!isPasswordMatch) {
+            return res.status(400).json({ message: 'Invalid credentials' });
+        }
+
+        // generate JWT token
+        const token = generateToken(user._id);
+
+        res.status(200).json({
+            user: {
+                _id: user._id,
+                username: user.username,
+                email: user.email,
+                profileImage: user.profileImage
+            },
+            token
+        });
     } catch (error) {
-
+        console.error("Error during login:", error);
+        res.status(500).json({ message: 'Server error' });
     }
 }
