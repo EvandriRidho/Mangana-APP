@@ -1,6 +1,6 @@
-import User from '../model/User.js';
+import User from '../models/User.js';
 import bcrypt from 'bcryptjs';
-import { generateToken } from '../utils/tokenUtils.js';
+import { generateToken } from '../utils/generateToken.js';
 import { sendError, sendSuccess } from '../utils/response.js';
 
 const DEFAULT_PROFILE_IMAGE = 'https://api.dicebear.com/9.x/avataaars/svg?seed=';
