@@ -3,10 +3,12 @@ import "dotenv/config"
 import authRoutes from './routes/authRoutes.js';
 import booksRoutes from './routes/booksRoute.js';
 import { connectDB } from './lib/db.js';
+import cors from 'cors';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+app.use(cors());
 app.use(express.json());
 
 app.get('/', (req, res) => {

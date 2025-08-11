@@ -8,6 +8,7 @@ export const getAllBooks = async (req, res) => {
         const limit = req.query.limit || 5;
         const skip = (page - 1) * limit;
 
+        // Validate page and limit
         const books = await Books.find()
             .sort({ createdAt: -1 })
             .skip(skip)
@@ -58,5 +59,40 @@ export const createBook = async (req, res) => {
         console.error("Error creating book:", error);
         return sendError(res, 500, 'Server error');
 
+    }
+}
+
+export const deletedById = async (req, res) => {
+    try {
+        const book = await Books.findById(req.params.id);
+
+        // Check if the book exists
+        if (!book) {
+            return sendError(res, 404, 'Book not found');
+        }
+
+        // Check if the user is authorized to delete the book
+        if (book.user.toString() !== req.user._id.toString()) {
+            return sendError(res, 403, 'You are not authorized to delete this book');
+        }
+
+        // Delete image from Cloudinary
+        if (book.image && book.image.includes('cloudinary')) {
+            try {
+                const publicId = book.image.split('/').pop().split('.')[0];
+                await cloudinary.uploader.destroy(publicId);
+            } catch (error) {
+                console.error("Error deleting image from Cloudinary:", error);
+                return sendError(res, 500, 'Error deleting image from Cloudinary');
+            }
+        }
+
+        await book.deleteOne();
+
+        return sendSuccess(res, 200, 'Book deleted successfully');
+
+    } catch (error) {
+        console.error("Error deleting book:", error);
+        return sendError(res, 500, 'Server error');
     }
 }
